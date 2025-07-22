@@ -17,18 +17,12 @@ By completing this lab, you will:
 
 ### Step 1: Clone or Download Repository
 
-Clone this repository or download the files to your local machine:
+Clone this repository:
 
 ```bash
 git clone [repository-url]
 cd lsd101-lesson5lab
 ```
-
-Or download the following files to the same directory:
-
-- `lesson5_interactive_lab.py` - The main interactive lab program
-- `building_blocks.py` - Building block implementations
-- `external_entities.py` - External entity implementations
 
 ### Step 2: Run the Interactive Lab
 

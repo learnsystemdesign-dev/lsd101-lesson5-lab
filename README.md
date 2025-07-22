@@ -1,6 +1,6 @@
 # Lesson 5: Queue + Worker - Async Processing Discovery Lab
 
-**Building Block Foundation**  
+**11111Building Block Foundation**  
 **LSD 101 Building Block Mastery**
 
 ## Learning Objectives
@@ -17,7 +17,7 @@ By completing this lab, you will:
 
 ### Step 1: Clone or Download Repository
 
-Clone this repository:
+Clone this repository to your local machine:
 
 ```bash
 git clone [repository-url]

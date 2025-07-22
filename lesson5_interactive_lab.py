@@ -12,6 +12,7 @@ import time
 import sys
 import random
 import argparse
+import threading
 from typing import Optional
 
 # Import our building blocks
@@ -38,6 +39,9 @@ class LabExperience:
         self.typewriter_speed = 0.03  # Seconds between characters
         self.fast_typewriter_speed = 0.01  # Faster for less important text
         self.instant_print = False  # Can be set to True to disable typewriter effect
+        
+        # Thread safety for print statements during simulations
+        self.print_lock = threading.Lock()
     
     def typewriter_print(self, text: str, speed: Optional[float] = None, end: str = "\n"):
         """Print text with typewriter effect"""
@@ -53,6 +57,11 @@ class LabExperience:
             if char not in [' ', '\n', '\t']:  # Don't delay on whitespace
                 time.sleep(speed)
         print(end=end)
+    
+    def direct_print(self, text: str, end: str = "\n"):
+        """Print text directly without typewriter effect (thread-safe)"""
+        with self.print_lock:
+            print(text, end=end)
     
     def print_header(self, text: str, style: str = "main"):
         """Print formatted headers"""
@@ -192,36 +201,36 @@ implement features, and why users get frustrated!
         def process_image_handler():
             task_name = "Process Image"
             duration = 15  # 5x longer - realistic for image processing
-            print(f"⏳ Service processing: {task_name} (UI FROZEN while waiting...)")
+            self.direct_print(f"⏳ Service processing: {task_name} (UI FROZEN while waiting...)")
             time.sleep(duration)
-            print(f"✅ Service completed: {task_name} after {duration}s")
+            self.direct_print(f"✅ Service completed: {task_name} after {duration}s")
             return {"task": task_name, "status": "completed", "duration": duration}
         
         @blocking_service.route("/send_email")
         def send_email_handler():
             task_name = "Send Email"
             duration = 20  # 5x longer - realistic for email with attachments
-            print(f"⏳ Service processing: {task_name} (UI FROZEN while waiting...)")
+            self.direct_print(f"⏳ Service processing: {task_name} (UI FROZEN while waiting...)")
             time.sleep(duration)
-            print(f"✅ Service completed: {task_name} after {duration}s")
+            self.direct_print(f"✅ Service completed: {task_name} after {duration}s")
             return {"task": task_name, "status": "completed", "duration": duration}
         
         @blocking_service.route("/generate_report")
         def generate_report_handler():
             task_name = "Generate Report"
             duration = 15  # 5x longer - realistic for report generation
-            print(f"⏳ Service processing: {task_name} (UI FROZEN while waiting...)")
+            self.direct_print(f"⏳ Service processing: {task_name} (UI FROZEN while waiting...)")
             time.sleep(duration)
-            print(f"✅ Service completed: {task_name} after {duration}s")
+            self.direct_print(f"✅ Service completed: {task_name} after {duration}s")
             return {"task": task_name, "status": "completed", "duration": duration}
         
         @blocking_service.route("/update_database")
         def update_database_handler():
             task_name = "Update Database"
             duration = 10  # 5x longer - realistic for database operations
-            print(f"⏳ Service processing: {task_name} (UI FROZEN while waiting...)")
+            self.direct_print(f"⏳ Service processing: {task_name} (UI FROZEN while waiting...)")
             time.sleep(duration)
-            print(f"✅ Service completed: {task_name} after {duration}s")
+            self.direct_print(f"✅ Service completed: {task_name} after {duration}s")
             return {"task": task_name, "status": "completed", "duration": duration}
         
         # Service endpoints to call
@@ -337,7 +346,7 @@ while the Worker building block processes tasks in the background.
             """Queue subscriber that forwards messages to Worker"""
             task_name = message['name']
             duration = message['duration']
-            print(f"   📬 Queue dispatching to Worker: {task_name}")
+            self.direct_print(f"   📬 Queue dispatching to Worker: {task_name}")
             
             # Submit to worker for actual processing
             job_id = worker.submit_job("process_task", message)
@@ -347,9 +356,9 @@ while the Worker building block processes tasks in the background.
         def process_task(data):
             task_name = data['name']
             duration = data['duration']
-            print(f"   🔧 Worker processing: {task_name}")
+            self.direct_print(f"   🔧 Worker processing: {task_name}")
             time.sleep(duration)
-            print(f"   ✅ Worker completed: {task_name}")
+            self.direct_print(f"   ✅ Worker completed: {task_name}")
             return {"status": "completed", "task": task_name}
         
         worker.register_job_type("process_task", process_task)
@@ -400,10 +409,10 @@ while the Worker building block processes tasks in the background.
             worker_stats = worker.get_stats()
             total_processed = worker_stats['completed_jobs'] + worker_stats['failed_jobs']
             
-            print(f"   📊 Progress: {total_processed}/{expected_jobs} tasks processed ({worker_stats['completed_jobs']} completed)")
+            self.direct_print(f"   📊 Progress: {total_processed}/{expected_jobs} tasks processed ({worker_stats['completed_jobs']} completed)")
             
             if total_processed >= expected_jobs:
-                print(f"   ✅ All {expected_jobs} tasks processed! Continuing...")
+                self.direct_print(f"   ✅ All {expected_jobs} tasks processed! Continuing...")
                 break
                 
             time.sleep(check_interval)
@@ -521,16 +530,16 @@ The Queue building block will intelligently distribute work!
         @single_queue.subscriber("process_task")
         def single_queue_handler(message):
             task_name = message['name']
-            print(f"   📬 Queue routing to single Worker: {task_name}")
+            self.direct_print(f"   📬 Queue routing to single Worker: {task_name}")
             job_id = single_worker.submit_job("process_task", message)
             return {"status": "queued", "job_id": job_id}
         
         def process_task_single(data):
             task_name = data['name']
             duration = data['duration']
-            print(f"   🔧 Single Worker processing: {task_name}")
+            self.direct_print(f"   🔧 Single Worker processing: {task_name}")
             time.sleep(duration)
-            print(f"   ✅ Single Worker completed: {task_name}")
+            self.direct_print(f"   ✅ Single Worker completed: {task_name}")
             return {"status": "completed", "task": task_name}
         
         single_worker.register_job_type("process_task", process_task_single)
@@ -547,10 +556,10 @@ The Queue building block will intelligently distribute work!
                 "name": task_name,
                 "duration": duration
             }, message_type="process_task")
-            print(f"📤 Queued: {task_name}")
+            self.direct_print(f"📤 Queued: {task_name}")
         
-        print(f"\n🎯 All {len(tasks)} tasks queued!")
-        print("⏳ Queue dispatching sequentially to single Worker...\n")
+        self.direct_print(f"\n🎯 All {len(tasks)} tasks queued!")
+        self.direct_print("⏳ Queue dispatching sequentially to single Worker...\n")
         
         # Wait for processing to complete
         # Active monitoring for single worker
@@ -565,10 +574,10 @@ The Queue building block will intelligently distribute work!
             worker_stats = single_worker.get_stats()
             total_processed = worker_stats['completed_jobs'] + worker_stats['failed_jobs']
             
-            print(f"   📊 Progress: {total_processed}/{expected_jobs} tasks processed")
+            self.direct_print(f"   📊 Progress: {total_processed}/{expected_jobs} tasks processed")
             
             if total_processed >= expected_jobs:
-                print(f"   ✅ All {expected_jobs} tasks processed! Continuing...")
+                self.direct_print(f"   ✅ All {expected_jobs} tasks processed! Continuing...")
                 break
                 
             time.sleep(check_interval)
@@ -613,7 +622,7 @@ The Queue building block will intelligently distribute work!
             task_name = message['name']
             # Choose worker with least load (round-robin for simplicity)
             worker = random.choice(workers)
-            print(f"   📬 Queue distributing to {worker.name}: {task_name}")
+            self.direct_print(f"   📬 Queue distributing to {worker.name}: {task_name}")
             job_id = worker.submit_job("process_task", message)
             return {"status": "distributed", "worker": worker.name, "job_id": job_id}
         
@@ -622,9 +631,9 @@ The Queue building block will intelligently distribute work!
             def process_task(data):
                 task_name = data['name']
                 duration = data['duration']
-                print(f"   🔧 Worker {worker_id} processing: {task_name}")
+                self.direct_print(f"   🔧 Worker {worker_id} processing: {task_name}")
                 time.sleep(duration)
-                print(f"   ✅ Worker {worker_id} completed: {task_name}")
+                self.direct_print(f"   ✅ Worker {worker_id} completed: {task_name}")
                 return {"status": "completed", "task": task_name, "worker": worker_id}
             return process_task
         
@@ -642,10 +651,10 @@ The Queue building block will intelligently distribute work!
                 "name": task_name,
                 "duration": duration
             }, message_type="process_task")
-            print(f"📤 Queued: {task_name}")
+            self.direct_print(f"📤 Queued: {task_name}")
         
-        print(f"\n🎯 All {len(tasks)} tasks queued!")
-        print("⚡ Queue distributing in PARALLEL to 3 Workers...\n")
+        self.direct_print(f"\n🎯 All {len(tasks)} tasks queued!")
+        self.direct_print("⚡ Queue distributing in PARALLEL to 3 Workers...\n")
         
         # Wait for parallel processing to complete
         # Active monitoring instead of fixed wait time
@@ -661,10 +670,10 @@ The Queue building block will intelligently distribute work!
             total_failed = sum(worker.get_stats()['failed_jobs'] for worker in workers)
             total_processed = total_completed + total_failed
             
-            print(f"   📊 Progress: {total_processed}/{expected_jobs} tasks processed ({total_completed} completed)")
+            self.direct_print(f"   📊 Progress: {total_processed}/{expected_jobs} tasks processed ({total_completed} completed)")
             
             if total_processed >= expected_jobs:
-                print(f"   ✅ All {expected_jobs} tasks processed! Continuing...")
+                self.direct_print(f"   ✅ All {expected_jobs} tasks processed! Continuing...")
                 break
                 
             time.sleep(check_interval)
@@ -788,12 +797,12 @@ for everyone else.
         @resilient_queue.subscriber("risky_task")
         def resilient_queue_handler(message):
             task_name = message['name']
-            print(f"   📬 Queue routing risky task to Worker: {task_name}")
+            self.direct_print(f"   📬 Queue routing risky task to Worker: {task_name}")
             try:
                 job_id = resilient_worker.submit_job("risky_task", message)
                 return {"status": "queued", "job_id": job_id, "task": task_name}
             except Exception as e:
-                print(f"   📬 Queue caught Worker submission error for {task_name}: {e}")
+                self.direct_print(f"   📬 Queue caught Worker submission error for {task_name}: {e}")
                 processing_results.append({"task": task_name, "status": "queue_failed", "error": str(e)})
                 return {"status": "failed_to_queue", "error": str(e)}
         
@@ -804,7 +813,7 @@ for everyone else.
             fail_chance = data.get('fail_chance', 0.3)
             duration = data.get('duration', 8)  # Realistic processing time
             
-            print(f"   🔧 Worker processing: {task_name}")
+            self.direct_print(f"   🔧 Worker processing: {task_name}")
             time.sleep(duration)
             
             # Ensure some tasks definitely fail for educational purposes
@@ -813,11 +822,11 @@ for everyone else.
             
             if force_fail or (not force_fail and random.random() < fail_chance):
                 error_msg = f"Task {task_name} failed (simulating API timeout/crash)!"
-                print(f"   ❌ Worker FAILED: {task_name} - {error_msg}")
+                self.direct_print(f"   ❌ Worker FAILED: {task_name} - {error_msg}")
                 processing_results.append({"task": task_name, "status": "failed", "error": error_msg})
                 raise Exception(error_msg)
             else:
-                print(f"   ✅ Worker completed: {task_name}")
+                self.direct_print(f"   ✅ Worker completed: {task_name}")
                 processing_results.append({"task": task_name, "status": "completed"})
                 return {"status": "completed", "task": task_name}
         
@@ -836,7 +845,7 @@ for everyone else.
         
         # Submit all tasks to Queue
         for i, task_name in enumerate(tasks, 1):
-            print(f"📤 User submitting to Queue: {task_name}")
+            self.direct_print(f"📤 User submitting to Queue: {task_name}")
             success = resilient_queue.enqueue({
                 "name": task_name,
                 "index": i,
@@ -845,14 +854,14 @@ for everyone else.
             }, message_type="risky_task")
             
             if success:
-                print(f"✅ Queued: {task_name} (Queue provides persistence)")
+                self.direct_print(f"✅ Queued: {task_name} (Queue provides persistence)")
             else:
-                print(f"❌ Queue full: {task_name}")
+                self.direct_print(f"❌ Queue full: {task_name}")
                 processing_results.append({"task": task_name, "status": "queue_full"})
-            print()
+            self.direct_print("")
         
-        print(f"🎯 All {len(tasks)} tasks submitted to Queue!")
-        print("📬 Queue automatically dispatching to Worker with failure handling...\n")
+        self.direct_print(f"🎯 All {len(tasks)} tasks submitted to Queue!")
+        self.direct_print("📬 Queue automatically dispatching to Worker with failure handling...\n")
         
         # Wait for processing to complete with active monitoring
         expected_jobs = len(tasks)
@@ -866,10 +875,10 @@ for everyone else.
             worker_stats = resilient_worker.get_stats()
             total_processed = worker_stats['completed_jobs'] + worker_stats['failed_jobs']
             
-            print(f"   📊 Progress: {total_processed}/{expected_jobs} tasks processed ({worker_stats['completed_jobs']} completed, {worker_stats['failed_jobs']} failed)")
+            self.direct_print(f"   📊 Progress: {total_processed}/{expected_jobs} tasks processed ({worker_stats['completed_jobs']} completed, {worker_stats['failed_jobs']} failed)")
             
             if total_processed >= expected_jobs:
-                print(f"   ✅ All {expected_jobs} tasks processed! Continuing...")
+                self.direct_print(f"   ✅ All {expected_jobs} tasks processed! Continuing...")
                 break
                 
             time.sleep(check_interval)
@@ -1040,7 +1049,7 @@ Master the 7 building blocks + 3 external entities for senior architectural thin
                 elif experiment_num == 2:
                     self.experiment_2_async()
                 elif experiment_num == 3:
-                    self.experiment_3_scaling()
+                    self.experiment_3_parallel()
                 elif experiment_num == 4:
                     self.experiment_4_resilience()
                 else:
